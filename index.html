@@ -284,6 +284,10 @@ input[type=range]::-webkit-slider-thumb {
     <div class="zone-chip" data-preset="num" onclick="applyZonePreset(this)">🔢 넘버패드</div>
     <div class="zone-chip" data-preset="mods" onclick="applyZonePreset(this)">⚙ 특수키</div>
     <div class="zone-chip" data-preset="nav" onclick="applyZonePreset(this)">🏹 방향키</div>
+    <div class="zone-chip" data-preset="left-col" onclick="applyZonePreset(this)">◧ 왼쪽 세로</div>
+    <div class="zone-chip" data-preset="diag" onclick="applyZonePreset(this)">◩ 대각선</div>
+    <div class="zone-chip" data-preset="sides" onclick="applyZonePreset(this)">⬛ 좌우+스페이스</div>
+    <div class="zone-chip" data-preset="bottom" onclick="applyZonePreset(this)">▬ 하단 파노라마</div>
     <div class="zone-chip" data-preset="none" onclick="applyZonePreset(this)">✕ 초기화</div>
   </div>
   <div class="kb-wrap">
@@ -538,6 +542,38 @@ const ZONE_PRESETS = {
   'num': () => new Set(ALL_KEYS.filter(k => k.g === 'num').map(k => k.id)),
   'mods': () => new Set(ALL_KEYS.filter(k => k.g === 'mod' || k.g === 'fn').map(k => k.id)),
   'nav': () => new Set(ALL_KEYS.filter(k => k.g === 'nav').map(k => k.id)),
+  'left-col': () => {
+    const s = new Set();
+    const leftIds = ['esc','grave','tab','caps','lshift','lctrl'];
+    leftIds.forEach(id => s.add(id));
+    s.add('space');
+    return s;
+  },
+  'diag': () => {
+    const s = new Set();
+    const groups = [
+      ['esc','f1','f2','f3'],
+      ['grave','k1','k2','k3','k4'],
+      ['tab','q','w','e','r','t'],
+      ['caps','a','s','d','f','g'],
+      ['lshift','z','x','c','v'],
+      ['lctrl','lwin','lalt','space'],
+    ];
+    groups.forEach(g => g.forEach(id => s.add(id)));
+    return s;
+  },
+  'sides': () => {
+    const s = new Set();
+    const sideIds = ['esc','del','pau','grave','npm','tab','npp','caps','pgdn','lshift','npent','lctrl','npdot'];
+    sideIds.forEach(id => s.add(id));
+    s.add('space');
+    return s;
+  },
+  'bottom': () => {
+    const s = new Set();
+    LAYOUT.forEach(k => { if(k.y >= 5) s.add(k.id); });
+    return s;
+  },
   'none': () => new Set(),
 };
 
@@ -636,20 +672,8 @@ function syncOverlays() {
       const pxY = 12 + (key.y - 1) * 34;
       const pxW = key.w * 34; // 1u = 34px
       const pxH = (key.h || 1) * 34;
-      // Draw path with rounded corners
-      const r = 4;
-      const x = pxX + 1.5, y = pxY + 1.5, w = pxW - 3, h = pxH - 3;
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.lineTo(x + w - r, y);
-      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-      ctx.lineTo(x + w, y + h - r);
-      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-      ctx.lineTo(x + r, y + h);
-      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-      ctx.lineTo(x, y + r);
-      ctx.quadraticCurveTo(x, y, x + r, y);
-      ctx.closePath();
+      // Subtract padding for key gaps (simulating the padding:1.5px in CSS)
+      ctx.roundRect(pxX + 1.5, pxY + 1.5, pxW - 3, pxH - 3, 4);
       ctx.fill();
     }
   });

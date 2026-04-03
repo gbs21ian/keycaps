@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AULA F99 PRO — Keycap Designer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap');
+
+:root {
+  --bg: #111;
+  --surf: #1c1c1c;
+  --surf2: #252525;
+  --border: #333;
+  --text: #e8e8e8;
+  --muted: #666;
+  --accent: #c8ff57;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 12px 60px;
+}
+
+h1 {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(18px, 3vw, 32px);
+  color: #fff;
+  text-align: center;
+  margin-bottom: 4px;
+  letter-spacing: -0.5px;
+}
+h1 span { color: var(--accent); }
+.subtitle { color: var(--muted); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; text-align: center; margin-bottom: 20px; }
+
+/* TABS */
+.tabs {
+  display: flex; gap: 4px;
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 10px; padding: 4px; margin-bottom: 18px;
+}
+.tab {
+  padding: 6px 16px; border-radius: 7px; cursor: pointer;
+  font-family: 'DM Mono', monospace; font-size: 11px;
+  letter-spacing: 0.5px; text-transform: uppercase;
+  color: var(--muted); border: none; background: none; transition: all 0.15s;
+}
+.tab.active { background: var(--accent); color: #111; font-weight: 700; }
+
+/* PANELS */
+.panel { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 1020px; }
+.panel.active { display: flex; }
+
+/* CONTROLS */
+.ctrl-row {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  justify-content: center; margin-bottom: 14px; width: 100%;
+}
+.cpg {
+  display: flex; align-items: center; gap: 7px;
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 12px;
+}
+.cpg label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+input[type=color] { width: 28px; height: 20px; border: none; border-radius: 3px; cursor: pointer; background: none; padding: 0; }
+
+.btn {
+  background: var(--surf); border: 1px solid var(--border);
+  color: var(--text); font-family: 'DM Mono', monospace;
+  font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase;
+  padding: 7px 12px; border-radius: 8px; cursor: pointer; transition: all 0.15s;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.danger:hover { border-color: #ff5555; color: #ff5555; }
+.btn.primary { background: var(--accent); color: #111; border-color: var(--accent); font-weight: 700; }
+
+/* COLOR PRESETS */
+.color-presets { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-bottom:12px; width:100%; }
+.cp-chip {
+  display:flex; align-items:center; gap:5px;
+  background:var(--surf); border:1px solid var(--border);
+  border-radius:14px; padding:4px 10px; cursor:pointer;
+  font-size:10px; color:var(--muted); transition:all 0.15s;
+}
+.cp-chip:hover { border-color:#555; color:var(--text); }
+.cp-dots { display:flex; gap:2px; }
+.cp-dot { width:9px; height:9px; border-radius:50%; }
+
+/* KEYBOARD WRAPPER */
+.kb-wrap {
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 14px; padding: 18px 14px;
+  width: 100%;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+}
+
+/* The actual keyboard body uses CSS Grid for precise layout */
+.kb-body {
+  background: #0e0e0e;
+  border-radius: 10px;
+  padding: 12px;
+  border: 1px solid #1e1e1e;
+  position: relative;
+  /* Grid: 1u = 34px, grid-unit = 0.25u = 8.5px. 20.5u = 82 columns. */
+  display: grid;
+  grid-template-columns: repeat(82, 8.5px);
+  grid-auto-rows: 34px;
+  gap: 0;
+  width: fit-content;
+}
+
+.k {
+  position: relative;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.08s, filter 0.08s;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 1.5px;
+}
+.k:hover { filter: brightness(1.35); transform: translateY(-1.5px); }
+
+/* Key Face */
+.k-face {
+  position: absolute; inset: 1.5px;
+  border-radius: 4px;
+}
+.k-spacer { opacity: 0; pointer-events: none; }
+.k-shine {
+  position: absolute; top: 1.5px; left: 1.5px; right: 1.5px; height: 40%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, transparent 100%);
+  border-radius: 4px 4px 0 0; pointer-events: none; z-index: 1;
+}
+.k-shadow {
+  position: absolute; bottom: 1.5px; left: 1.5px; right: 1.5px; height: 28%;
+  background: linear-gradient(0deg, rgba(0,0,0,0.25) 0%, transparent 100%);
+  border-radius: 0 0 4px 4px; pointer-events: none; z-index: 1;
+}
+.k-label {
+  position: relative; z-index: 2;
+  padding: 5px 6px 0;
+  font-size: 8px; font-weight: 500; line-height: 1.2;
+  pointer-events: none; white-space: nowrap; overflow: hidden;
+}
+.k.illust-key { outline: 1.5px solid rgba(200,255,87,0.6); outline-offset: -1.5px; }
+.k.illust-key .k-face { opacity: 0.5; }
+
+/* Knob */
+.knob {
+  width: 31px; height: 31px; border-radius: 50%;
+  margin: 1.5px;
+  background: radial-gradient(circle at 35% 30%, #4a4a4a, #1a1a1a);
+  border: 2px solid #3a3a3a;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+}
+.knob-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent); opacity: .8; margin-top: -7px;
+}
+
+/* ZONE PANEL */
+.zone-presets {
+  display: flex; flex-wrap: wrap; gap: 7px;
+  justify-content: center; margin-bottom: 14px; width: 100%;
+}
+.zone-chip {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 16px; padding: 5px 14px; cursor: pointer;
+  font-size: 10px; color: var(--muted); transition: all 0.15s;
+}
+.zone-chip:hover { border-color: var(--accent); color: var(--accent); }
+.zone-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(200,255,87,0.07); }
+
+/* Upload */
+.upload-area {
+  border: 2px dashed var(--border); border-radius: 10px;
+  padding: 20px 28px; text-align: center; cursor: pointer;
+  transition: all 0.2s; margin-bottom: 14px; width: 100%;
+}
+.upload-area:hover, .upload-area.drag { border-color: var(--accent); background: rgba(200,255,87,0.04); }
+.upload-area p { color: var(--muted); font-size: 11px; }
+.upload-area strong { color: var(--accent); }
+#fileInput { display: none; }
+
+.slider-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 8px; padding: 7px 14px; margin-bottom: 14px; width:100%;
+}
+.slider-row label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+input[type=range] {
+  -webkit-appearance: none; height: 2px; background: var(--border);
+  border-radius: 2px; outline: none; flex: 1;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 13px; height: 13px;
+  border-radius: 50%; background: var(--accent); cursor: pointer;
+}
+.slider-val { font-size: 10px; color: var(--accent); min-width: 28px; text-align: right; }
+
+/* illust overlay on kb */
+.kb-illust-wrap { position: relative; width: 100%; }
+.kb-illust-overlay {
+  position: absolute; inset: 0;
+  border-radius: 10px; overflow: hidden; pointer-events: none; z-index: 10;
+}
+.kb-illust-overlay img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.3s; }
+
+.info { font-size: 10px; color: var(--muted); text-align: center; line-height: 1.9; margin-top: 12px; }
+.info kbd { background: var(--surf2); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; font-size: 9px; color: var(--text); }
+</style>
+</head>
+<body>
+
+<h1>F99 PRO <span>Keycap</span> Designer</h1>
+<p class="subtitle">AULA · 96% · 99 Keys · English</p>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('color')">🎨 Color</button>
+  <button class="tab" onclick="switchTab('zone')">🖼 Illust Zone</button>
+</div>
+
+<!-- COLOR TAB -->
+<div class="panel active" id="panel-color">
+  <div class="ctrl-row">
+    <div class="cpg">
+      <label>Key</label>
+      <input type="color" id="paintColor" value="#2c2c2c">
+    </div>
+    <div class="cpg">
+      <label>Legend</label>
+      <input type="color" id="legendColor" value="#d8d8d8">
+    </div>
+    <button class="btn" id="btnGroup" onclick="toggleGroupMode()">Group Mode</button>
+    <button class="btn danger" onclick="resetColors()">Reset</button>
+  </div>
+  <div class="color-presets" id="colorPresets"></div>
+  <div class="kb-wrap">
+    <div class="kb-illust-wrap">
+      <div class="kb-body" id="kbColor"></div>
+      <div class="kb-illust-overlay"><img id="illustImgColor" src="" alt=""></div>
+    </div>
+  </div>
+  <p class="info">Click to paint · <kbd>Shift+Click</kbd> multi-select · <kbd>Right-click</kbd> eyedrop · <kbd>Enter</kbd> apply · <kbd>Esc</kbd> cancel</p>
+</div>
+
+<!-- ZONE TAB -->
+<div class="panel" id="panel-zone">
+  <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+    <p>🖼 <strong>이미지 업로드</strong> — 클릭 또는 드래그</p>
+    <p style="margin-top:4px;font-size:9px;">PNG · JPG · WEBP</p>
+  </div>
+  <input type="file" id="fileInput" accept="image/*">
+  <div class="slider-row">
+    <label>이미지 투명도</label>
+    <input type="range" id="opacitySlider" min="10" max="100" value="80">
+    <span class="slider-val" id="opacityVal">80%</span>
+  </div>
+  <div class="slider-row">
+    <label>크기 조절</label>
+    <input type="range" id="scaleSlider" min="10" max="300" value="100">
+    <span class="slider-val" id="scaleVal">100%</span>
+  </div>
+  <p style="font-size:10px;color:var(--muted);margin-bottom:10px;text-align:center;">마우스로 이미지를 드래그하여 이동할 수 있습니다. (휠로 크기 조절)</p>
+  <p style="font-size:10px;color:var(--muted);margin-bottom:10px;text-align:center;">일러스트 구역 프리셋</p>
+  <div class="zone-presets">
+    <div class="zone-chip" data-preset="left-col" onclick="applyZonePreset(this)">◧ 왼쪽 세로</div>
+    <div class="zone-chip" data-preset="diag" onclick="applyZonePreset(this)">◩ 대각선</div>
+    <div class="zone-chip" data-preset="sides" onclick="applyZonePreset(this)">⬛ 좌우+스페이스</div>
+    <div class="zone-chip" data-preset="bottom" onclick="applyZonePreset(this)">▬ 하단 파노라마</div>
+    <div class="zone-chip" data-preset="mods" onclick="applyZonePreset(this)">⌨ 수정키</div>
+    <div class="zone-chip" data-preset="none" onclick="applyZonePreset(this)">✕ 초기화</div>
+  </div>
+  <div class="kb-wrap">
+    <div class="kb-illust-wrap">
+      <div class="kb-body" id="kbZone"></div>
+      <div class="kb-illust-overlay"><img id="illustImgZone" src="" alt=""></div>
+    </div>
+  </div>
+  <p class="info">키 클릭으로 일러스트 구역 토글 · 이미지 올린 후 투명도 조절</p>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// F99 PRO LAYOUT — Correct 96% layout
+// Each key: {id, l (label), x (start col), y (row), w (width), h (height)}
+// ═══════════════════════════════════════════════════════
+
+// Group default colors
+const GC = { alpha:'#252525', mod:'#1c1c1c', fn:'#1c1c1c', nav:'#1e2e1e', num:'#1c1e2e', space:'#252525' };
+const GL = { alpha:'#d0d0d0', mod:'#888', fn:'#6ab0f5', nav:'#70cc74', num:'#98a8e0', space:'#d0d0d0' };
+
+// State
+let keyColors = {}, keyLegends = {};
+let groupMode = false, selectedKeys = new Set();
+let illustZone = new Set();
+let uploadedImg = null;
+
+// Image transform state
+let imgX = 0, imgY = 0, imgScale = 1;
+let isDragging = false, startX, startY;
+
+// ── LAYOUT DEFINITION ──────────────────────────────────
+// F99 PRO Absolute Layout (1u = 4 grid columns)
+// Coordinates: x (column 1-82), y (row 1-6), w (width in u), h (height in rows)
+
+const LAYOUT = [
+  // ROW 0 (Fn Row)
+  {id:'esc',   l:'Esc', x:1,  y:1, w:1,   g:'mod'},
+  {id:'f1',    l:'F1',  x:9,  y:1, w:1,   g:'fn'},
+  {id:'f2',    l:'F2',  x:13, y:1, w:1,   g:'fn'},
+  {id:'f3',    l:'F3',  x:17, y:1, w:1,   g:'fn'},
+  {id:'f4',    l:'F4',  x:21, y:1, w:1,   g:'fn'},
+  {id:'f5',    l:'F5',  x:27, y:1, w:1,   g:'fn'},
+  {id:'f6',    l:'F6',  x:31, y:1, w:1,   g:'fn'},
+  {id:'f7',    l:'F7',  x:35, y:1, w:1,   g:'fn'},
+  {id:'f8',    l:'F8',  x:39, y:1, w:1,   g:'fn'},
+  {id:'f9',    l:'F9',  x:45, y:1, w:1,   g:'fn'},
+  {id:'f10',   l:'F10', x:49, y:1, w:1,   g:'fn'},
+  {id:'f11',   l:'F11', x:53, y:1, w:1,   g:'fn'},
+  {id:'f12',   l:'F12', x:57, y:1, w:1,   g:'fn'},
+  {id:'del',   l:'Del', x:62, y:1, w:1,   g:'nav'},
+  {id:'scr',   l:'Scr', x:66, y:1, w:1,   g:'nav'},
+  {id:'pau',   l:'Pau', x:70, y:1, w:1,   g:'nav'},
+  {id:'_knob', l:'',    x:79, y:1, w:1,   g:'knob'},
+
+  // ROW 1 (Number Row)
+  {id:'grave', l:'`~',  x:1,  y:2, w:1,   g:'alpha'},
+  {id:'k1',    l:'1!',  x:5,  y:2, w:1,   g:'alpha'},
+  {id:'k2',    l:'2@',  x:9,  y:2, w:1,   g:'alpha'},
+  {id:'k3',    l:'3#',  x:13, y:2, w:1,   g:'alpha'},
+  {id:'k4',    l:'4$',  x:17, y:2, w:1,   g:'alpha'},
+  {id:'k5',    l:'5%',  x:21, y:2, w:1,   g:'alpha'},
+  {id:'k6',    l:'6^',  x:25, y:2, w:1,   g:'alpha'},
+  {id:'k7',    l:'7&',  x:29, y:2, w:1,   g:'alpha'},
+  {id:'k8',    l:'8*',  x:33, y:2, w:1,   g:'alpha'},
+  {id:'k9',    l:'9(',  x:37, y:2, w:1,   g:'alpha'},
+  {id:'k0',    l:'0)',  x:41, y:2, w:1,   g:'alpha'},
+  {id:'minus', l:'-_',  x:45, y:2, w:1,   g:'alpha'},
+  {id:'equal', l:'=+',  x:49, y:2, w:1,   g:'alpha'},
+  {id:'bksp',  l:'⌫',   x:53, y:2, w:2,   g:'mod'},
+  {id:'home',  l:'Home',x:62, y:2, w:1,   g:'nav'},
+  {id:'num',   l:'Num', x:67, y:2, w:1,   g:'num'},
+  {id:'npsl',  l:'/',   x:71, y:2, w:1,   g:'num'},
+  {id:'npst',  l:'*',   x:75, y:2, w:1,   g:'num'},
+  {id:'npm',   l:'-',   x:79, y:2, w:1,   g:'num'},
+
+  // ROW 2 (QWERTY)
+  {id:'tab',   l:'Tab', x:1,  y:3, w:1.5, g:'mod'},
+  {id:'q',     l:'Q',   x:7,  y:3, w:1,   g:'alpha'},
+  {id:'w',     l:'W',   x:11, y:3, w:1,   g:'alpha'},
+  {id:'e',     l:'E',   x:15, y:3, w:1,   g:'alpha'},
+  {id:'r',     l:'R',   x:19, y:3, w:1,   g:'alpha'},
+  {id:'t',     l:'T',   x:23, y:3, w:1,   g:'alpha'},
+  {id:'y',     l:'Y',   x:27, y:3, w:1,   g:'alpha'},
+  {id:'u',     l:'U',   x:31, y:3, w:1,   g:'alpha'},
+  {id:'i',     l:'I',   x:35, y:3, w:1,   g:'alpha'},
+  {id:'o',     l:'O',   x:39, y:3, w:1,   g:'alpha'},
+  {id:'p',     l:'P',   x:43, y:3, w:1,   g:'alpha'},
+  {id:'lbr',   l:'[{',  x:47, y:3, w:1,   g:'alpha'},
+  {id:'rbr',   l:']}',  x:51, y:3, w:1,   g:'alpha'},
+  {id:'bsl',   l:'\\|', x:55, y:3, w:1.5, g:'alpha'},
+  {id:'pgup',  l:'PgUp',x:62, y:3, w:1,   g:'nav'},
+  {id:'np7',   l:'7',   x:67, y:3, w:1,   g:'num'},
+  {id:'np8',   l:'8',   x:71, y:3, w:1,   g:'num'},
+  {id:'np9',   l:'9',   x:75, y:3, w:1,   g:'num'},
+  {id:'npp',   l:'+',   x:79, y:3, w:1, h:2, g:'num'},
+
+  // ROW 3 (ASDF)
+  {id:'caps',  l:'Caps', x:1,  y:4, w:1.75, g:'mod'},
+  {id:'a',     l:'A',    x:8,  y:4, w:1,    g:'alpha'},
+  {id:'s',     l:'S',    x:12, y:4, w:1,    g:'alpha'},
+  {id:'d',     l:'D',    x:16, y:4, w:1,    g:'alpha'},
+  {id:'f',     l:'F',    x:20, y:4, w:1,    g:'alpha'},
+  {id:'g',     l:'G',    x:24, y:4, w:1,    g:'alpha'},
+  {id:'h',     l:'H',    x:28, y:4, w:1,    g:'alpha'},
+  {id:'j',     l:'J',    x:32, y:4, w:1,    g:'alpha'},
+  {id:'k',     l:'K',    x:36, y:4, w:1,    g:'alpha'},
+  {id:'l',     l:'L',    x:40, y:4, w:1,    g:'alpha'},
+  {id:'semi',  l:';:',   x:44, y:4, w:1,    g:'alpha'},
+  {id:'apos',  l:'\'"',  x:48, y:4, w:1,    g:'alpha'},
+  {id:'enter', l:'Enter',x:52, y:4, w:2.25, g:'mod'},
+  {id:'pgdn',  l:'PgDn', x:62, y:4, w:1,    g:'nav'},
+  {id:'np4',   l:'4',    x:67, y:4, w:1,    g:'num'},
+  {id:'np5',   l:'5',    x:71, y:4, w:1,    g:'num'},
+  {id:'np6',   l:'6',    x:75, y:4, w:1,    g:'num'},
+
+  // ROW 4 (ZXCV)
+  {id:'lshift',l:'Shift',x:1,  y:5, w:2.25, g:'mod'},
+  {id:'z',     l:'Z',    x:10, y:5, w:1,    g:'alpha'},
+  {id:'x',     l:'X',    x:14, y:5, w:1,    g:'alpha'},
+  {id:'c',     l:'C',    x:18, y:5, w:1,    g:'alpha'},
+  {id:'v',     l:'V',    x:22, y:5, w:1,    g:'alpha'},
+  {id:'b',     l:'B',    x:26, y:5, w:1,    g:'alpha'},
+  {id:'n',     l:'N',    x:30, y:5, w:1,    g:'alpha'},
+  {id:'m',     l:'M',    x:34, y:5, w:1,    g:'alpha'},
+  {id:'comma', l:',<',   x:38, y:5, w:1,    g:'alpha'},
+  {id:'dot',   l:'.>',   x:42, y:5, w:1,    g:'alpha'},
+  {id:'slash', l:'/?',   x:46, y:5, w:1,    g:'alpha'},
+  {id:'rshift',l:'Shift',x:51, y:5, w:1.75, g:'mod'},
+  {id:'up',    l:'↑',    x:58, y:5, w:1,    g:'nav'},
+  {id:'np1',   l:'1',    x:67, y:5, w:1,    g:'num'},
+  {id:'np2',   l:'2',    x:71, y:5, w:1,    g:'num'},
+  {id:'np3',   l:'3',    x:75, y:5, w:1,    g:'num'},
+  {id:'npent', l:'Ent',  x:79, y:5, w:1, h:2, g:'num'},
+
+  // ROW 5 (Space Row)
+  {id:'lctrl', l:'Ctrl', x:1,  y:6, w:1.25, g:'mod'},
+  {id:'lwin',  l:'Win',  x:6,  y:6, w:1.25, g:'mod'},
+  {id:'lalt',  l:'Alt',  x:11, y:6, w:1.25, g:'mod'},
+  {id:'space', l:'',     x:16, y:6, w:6.25, g:'space'},
+  {id:'ralt',  l:'Alt',  x:41, y:6, w:1,    g:'mod'},
+  {id:'fn',    l:'Fn',   x:45, y:6, w:1,    g:'mod'},
+  {id:'left',  l:'←',   x:54, y:6, w:1,    g:'nav'},
+  {id:'down',  l:'↓',   x:58, y:6, w:1,    g:'nav'},
+  {id:'right', l:'→',   x:62, y:6, w:1,    g:'nav'},
+  {id:'np0',   l:'0',    x:67, y:6, w:2,    g:'num'},
+  {id:'npdot', l:'.',    x:75, y:6, w:1,    g:'num'},
+];
+
+const ALL_KEYS = LAYOUT.filter(k => k.g !== 'knob');
+
+// ── RENDER ─────────────────────────────────────────────
+function makeKey(key, clickFn, showZone) {
+  if(key.g === 'knob') {
+    const kn = document.createElement('div');
+    kn.className = 'knob';
+    kn.style.gridColumn = `${key.x} / span 4`;
+    kn.style.gridRow = `${key.y} / span 1`;
+    const dot = document.createElement('div');
+    dot.className = 'knob-dot';
+    kn.appendChild(dot);
+    return kn;
+  }
+  const el = document.createElement('div');
+  const isSpacer = key.g === 'spacer';
+  el.className = `k ${isSpacer ? 'k-spacer' : ''}`;
+  el.id = `k-${clickFn.name}-${key.id}`;
+  el.dataset.id = key.id;
+
+  // Set Absolute Grid Position
+  const spanW = Math.round(key.w * 4);
+  const spanH = key.h || 1;
+  el.style.gridColumn = `${key.x} / span ${spanW}`;
+  el.style.gridRow = `${key.y} / span ${spanH}`;
+
+  if(isSpacer) return el;
+
+  const bg = keyColors[key.id] || GC[key.g] || '#222';
+  const lc = keyLegends[key.id] || GL[key.g] || '#ccc';
+  if(showZone && illustZone.has(key.id)) el.classList.add('illust-key');
+  el.innerHTML = `<div class="k-face" style="background:${bg}"></div><div class="k-shine"></div><div class="k-shadow"></div><div class="k-label" style="color:${lc}">${key.l || ''}</div>`;
+  el.addEventListener('click', e => clickFn(e, key));
+  el.addEventListener('contextmenu', e => { e.preventDefault(); eyedrop(key); });
+  return el;
+}
+
+function buildKb(containerId, clickFn, showZone) {
+  const cont = document.getElementById(containerId);
+  cont.innerHTML = '';
+  LAYOUT.forEach(key => {
+    cont.appendChild(makeKey(key, clickFn, showZone));
+  });
+}
+
+// ── COLOR CLICK ────────────────────────────────────────
+function colorClick(e, key) {
+  const paint = document.getElementById('paintColor').value;
+  const legend = document.getElementById('legendColor').value;
+  if(e.shiftKey || groupMode) {
+    selectedKeys.has(key.id) ? selectedKeys.delete(key.id) : selectedKeys.add(key.id);
+    const el = document.getElementById(`k-colorClick-${key.id}`);
+    if(el) el.style.outline = selectedKeys.has(key.id) ? `2px solid ${paint}` : '';
+  } else {
+    if(selectedKeys.size > 0) {
+      selectedKeys.forEach(id => { keyColors[id] = paint; keyLegends[id] = legend; });
+      selectedKeys.clear();
+    } else {
+      keyColors[key.id] = paint;
+      keyLegends[key.id] = legend;
+    }
+    rebuildColor();
+  }
+}
+
+function eyedrop(key) {
+  document.getElementById('paintColor').value = keyColors[key.id] || GC[key.g] || '#222222';
+}
+
+function toggleGroupMode() {
+  groupMode = !groupMode;
+  document.getElementById('btnGroup').classList.toggle('primary', groupMode);
+  if(!groupMode) { selectedKeys.clear(); rebuildColor(); }
+}
+
+function resetColors() {
+  keyColors = {}; keyLegends = {};
+  selectedKeys.clear(); groupMode = false;
+  document.getElementById('btnGroup').classList.remove('primary');
+  rebuildColor();
+}
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'Enter' && selectedKeys.size > 0) {
+    const p = document.getElementById('paintColor').value;
+    const lg = document.getElementById('legendColor').value;
+    selectedKeys.forEach(id => { keyColors[id] = p; keyLegends[id] = lg; });
+    selectedKeys.clear();
+    rebuildColor();
+  }
+  if(e.key === 'Escape') { selectedKeys.clear(); rebuildColor(); }
+});
+
+// ── ZONE CLICK ─────────────────────────────────────────
+function zoneClick(e, key) {
+  illustZone.has(key.id) ? illustZone.delete(key.id) : illustZone.add(key.id);
+  rebuildZone();
+}
+
+const ZONE_PRESETS = {
+  'left-col': () => {
+    const s = new Set();
+    const leftIds = ['esc','grave','tab','caps','lshift','lctrl'];
+    leftIds.forEach(id => s.add(id));
+    s.add('space');
+    return s;
+  },
+  'diag': () => {
+    const s = new Set();
+    const groups = [
+      ['esc','f1','f2','f3'],
+      ['grave','k1','k2','k3','k4'],
+      ['tab','q','w','e','r','t'],
+      ['caps','a','s','d','f','g'],
+      ['lshift','z','x','c','v'],
+      ['lctrl','lwin','lalt','space'],
+    ];
+    groups.forEach(g => g.forEach(id => s.add(id)));
+    return s;
+  },
+  'sides': () => {
+    const s = new Set();
+    const sideIds = ['esc','del','pau','grave','npm','tab','npp','caps','pgdn','lshift','npent','lctrl','npdot'];
+    sideIds.forEach(id => s.add(id));
+    s.add('space');
+    return s;
+  },
+  'bottom': () => {
+    const s = new Set();
+    LAYOUT.forEach(k => { if(k.y >= 5) s.add(k.id); });
+    return s;
+  },
+  'mods': () => new Set(ALL_KEYS.filter(k => k.g === 'mod' || k.g === 'fn').map(k => k.id)),
+  'none': () => new Set(),
+};
+
+function applyZonePreset(chip) {
+  document.querySelectorAll('.zone-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+  illustZone = ZONE_PRESETS[chip.dataset.preset]();
+  rebuildZone();
+}
+
+// ── REBUILD ────────────────────────────────────────────
+function rebuildColor() { buildKb('kbColor', colorClick, false); }
+function rebuildZone()  { buildKb('kbZone',  zoneClick,  true); syncOverlays(); }
+
+// ── IMAGE UPLOAD ───────────────────────────────────────
+document.getElementById('fileInput').addEventListener('change', e => {
+  const f = e.target.files[0]; if(!f) return;
+  uploadedImg = URL.createObjectURL(f);
+  syncOverlays();
+});
+const ua = document.getElementById('uploadArea');
+ua.addEventListener('dragover', e => { e.preventDefault(); ua.classList.add('drag'); });
+ua.addEventListener('dragleave', () => ua.classList.remove('drag'));
+ua.addEventListener('drop', e => {
+  e.preventDefault(); ua.classList.remove('drag');
+  const f = e.dataTransfer.files[0]; if(!f) return;
+  uploadedImg = URL.createObjectURL(f);
+  syncOverlays();
+});
+document.getElementById('opacitySlider').addEventListener('input', function() {
+  document.getElementById('opacityVal').textContent = this.value + '%';
+  syncOverlays();
+});
+document.getElementById('scaleSlider').addEventListener('input', function() {
+  imgScale = this.value / 100;
+  document.getElementById('scaleVal').textContent = this.value + '%';
+  syncOverlays();
+});
+
+// ── DRAG & WHEEL INTERACTION ───────────────────────────
+function initImgEvents() {
+  const containers = [document.querySelector('#panel-color .kb-illust-wrap'), document.querySelector('#panel-zone .kb-illust-wrap')];
+  
+  containers.forEach(container => {
+    container.addEventListener('mousedown', e => {
+      if(!uploadedImg) return;
+      isDragging = true;
+      startX = e.clientX - imgX;
+      startY = e.clientY - imgY;
+      container.style.cursor = 'grabbing';
+    });
+    
+    window.addEventListener('mousemove', e => {
+      if(!isDragging) return;
+      imgX = e.clientX - startX;
+      imgY = e.clientY - startY;
+      syncOverlays();
+    });
+    
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+      container.style.cursor = '';
+    });
+
+    container.addEventListener('wheel', e => {
+      if(!uploadedImg) return;
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.05 : 0.05;
+      imgScale = Math.max(0.1, Math.min(5, imgScale + delta));
+      document.getElementById('scaleSlider').value = Math.round(imgScale * 100);
+      document.getElementById('scaleVal').textContent = Math.round(imgScale * 100) + '%';
+      syncOverlays();
+    }, { passive: false });
+  });
+}
+
+function syncOverlays() {
+  const op = document.getElementById('opacitySlider').value / 100;
+  ['illustImgColor','illustImgZone'].forEach(id => {
+    const img = document.getElementById(id);
+    if(uploadedImg) { 
+      img.src = uploadedImg; 
+      img.style.opacity = op;
+      img.style.transform = `translate(${imgX}px, ${imgY}px) scale(${imgScale})`;
+      img.style.objectFit = 'contain'; // Changed from 'cover' for better control
+      img.style.pointerEvents = 'none';
+    }
+  });
+}
+
+// ── COLOR PRESETS ──────────────────────────────────────
+const COLOR_PRESETS = [
+  {name:'Dark',    c:{alpha:'#202020',mod:'#141414',fn:'#141414',nav:'#182018',num:'#14141e',space:'#202020'}, l:{alpha:'#ccc',mod:'#888',fn:'#6af',nav:'#6d6',num:'#aaf',space:'#ccc'}},
+  {name:'Matcha',  c:{alpha:'#2d3b2d',mod:'#1e2a1e',fn:'#1e2a1e',nav:'#3a4a2a',num:'#1e2a1e',space:'#2d3b2d'}, l:{alpha:'#b8e0b8',mod:'#88bb88',fn:'#c8ff80',nav:'#fff',num:'#b8d8b8',space:'#b8e0b8'}},
+  {name:'Ocean',   c:{alpha:'#1a2a3a',mod:'#0f1e2e',fn:'#0f1e2e',nav:'#1e2e48',num:'#0f1e38',space:'#1a2a3a'}, l:{alpha:'#88ccee',mod:'#5599cc',fn:'#aadfff',nav:'#fff',num:'#88aadd',space:'#88ccee'}},
+  {name:'Cream',   c:{alpha:'#d4c5a9',mod:'#b8a88a',fn:'#b8a88a',nav:'#c0aa88',num:'#b8a88a',space:'#d4c5a9'}, l:{alpha:'#3a2e1e',mod:'#2a1e0e',fn:'#2a1e0e',nav:'#1a1008',num:'#2a1e0e',space:'#3a2e1e'}},
+  {name:'Sakura',  c:{alpha:'#f0c0cc',mod:'#d8a0b0',fn:'#d8a0b0',nav:'#e0b0c0',num:'#d8a0b0',space:'#f0c0cc'}, l:{alpha:'#6a2a3a',mod:'#4a1a2a',fn:'#4a1a2a',nav:'#200010',num:'#4a1a2a',space:'#6a2a3a'}},
+  {name:'Neon',    c:{alpha:'#0e0e1a',mod:'#0a0a14',fn:'#0a0a14',nav:'#0a140a',num:'#0a0a14',space:'#0e0e1a'}, l:{alpha:'#ff44cc',mod:'#44ffcc',fn:'#ffff44',nav:'#44ff88',num:'#44ccff',space:'#ff44cc'}},
+  {name:'Slate',   c:{alpha:'#2a2e38',mod:'#1e2228',fn:'#1e2228',nav:'#2a3040',num:'#1e2230',space:'#2a2e38'}, l:{alpha:'#c0cce0',mod:'#8898b0',fn:'#a0b8d8',nav:'#d0e8ff',num:'#a0b0d0',space:'#c0cce0'}},
+];
+
+function buildColorPresets() {
+  const cont = document.getElementById('colorPresets');
+  COLOR_PRESETS.forEach(p => {
+    const chip = document.createElement('div');
+    chip.className = 'cp-chip';
+    const dots = document.createElement('div');
+    dots.className = 'cp-dots';
+    [p.c.alpha, p.c.mod, p.c.nav, p.c.num].forEach(c => {
+      const d = document.createElement('div');
+      d.className = 'cp-dot'; d.style.background = c;
+      dots.appendChild(d);
+    });
+    chip.appendChild(dots);
+    chip.appendChild(document.createTextNode(p.name));
+    chip.addEventListener('click', () => {
+      keyColors = {}; keyLegends = {};
+      ALL_KEYS.forEach(k => {
+        if(p.c[k.g]) keyColors[k.id] = p.c[k.g];
+        if(p.l[k.g]) keyLegends[k.id] = p.l[k.g];
+      });
+      rebuildColor();
+    });
+    cont.appendChild(chip);
+  });
+}
+
+// ── TABS ───────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['color','zone'][i] === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-'+name));
+  if(name === 'zone') rebuildZone();
+}
+
+// ── INIT ───────────────────────────────────────────────
+buildColorPresets();
+rebuildColor();
+rebuildZone();
+initImgEvents();
+</script>
+</body>
+</html>

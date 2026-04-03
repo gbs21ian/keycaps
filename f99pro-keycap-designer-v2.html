@@ -279,11 +279,11 @@ input[type=range]::-webkit-slider-thumb {
   <p style="font-size:10px;color:var(--muted);margin-bottom:10px;text-align:center;">마우스로 이미지를 드래그하여 이동할 수 있습니다. (휠로 크기 조절)</p>
   <p style="font-size:10px;color:var(--muted);margin-bottom:10px;text-align:center;">일러스트 구역 프리셋</p>
   <div class="zone-presets">
-    <div class="zone-chip" data-preset="left-col" onclick="applyZonePreset(this)">◧ 왼쪽 세로</div>
-    <div class="zone-chip" data-preset="diag" onclick="applyZonePreset(this)">◩ 대각선</div>
-    <div class="zone-chip" data-preset="sides" onclick="applyZonePreset(this)">⬛ 좌우+스페이스</div>
-    <div class="zone-chip" data-preset="bottom" onclick="applyZonePreset(this)">▬ 하단 파노라마</div>
-    <div class="zone-chip" data-preset="mods" onclick="applyZonePreset(this)">⌨ 수정키</div>
+    <div class="zone-chip" data-preset="all" onclick="applyZonePreset(this)">⌨ 전체</div>
+    <div class="zone-chip" data-preset="alphas" onclick="applyZonePreset(this)">🔤 문자열</div>
+    <div class="zone-chip" data-preset="num" onclick="applyZonePreset(this)">🔢 넘버패드</div>
+    <div class="zone-chip" data-preset="mods" onclick="applyZonePreset(this)">⚙ 특수키</div>
+    <div class="zone-chip" data-preset="nav" onclick="applyZonePreset(this)">🏹 방향키</div>
     <div class="zone-chip" data-preset="none" onclick="applyZonePreset(this)">✕ 초기화</div>
   </div>
   <div class="kb-wrap">
@@ -533,39 +533,11 @@ function zoneClick(e, key) {
 }
 
 const ZONE_PRESETS = {
-  'left-col': () => {
-    const s = new Set();
-    const leftIds = ['esc','grave','tab','caps','lshift','lctrl'];
-    leftIds.forEach(id => s.add(id));
-    s.add('space');
-    return s;
-  },
-  'diag': () => {
-    const s = new Set();
-    const groups = [
-      ['esc','f1','f2','f3'],
-      ['grave','k1','k2','k3','k4'],
-      ['tab','q','w','e','r','t'],
-      ['caps','a','s','d','f','g'],
-      ['lshift','z','x','c','v'],
-      ['lctrl','lwin','lalt','space'],
-    ];
-    groups.forEach(g => g.forEach(id => s.add(id)));
-    return s;
-  },
-  'sides': () => {
-    const s = new Set();
-    const sideIds = ['esc','del','pau','grave','npm','tab','npp','caps','pgdn','lshift','npent','lctrl','npdot'];
-    sideIds.forEach(id => s.add(id));
-    s.add('space');
-    return s;
-  },
-  'bottom': () => {
-    const s = new Set();
-    LAYOUT.forEach(k => { if(k.y >= 5) s.add(k.id); });
-    return s;
-  },
+  'all': () => new Set(ALL_KEYS.map(k => k.id)),
+  'alphas': () => new Set(ALL_KEYS.filter(k => k.g === 'alpha' || k.g === 'space').map(k => k.id)),
+  'num': () => new Set(ALL_KEYS.filter(k => k.g === 'num').map(k => k.id)),
   'mods': () => new Set(ALL_KEYS.filter(k => k.g === 'mod' || k.g === 'fn').map(k => k.id)),
+  'nav': () => new Set(ALL_KEYS.filter(k => k.g === 'nav').map(k => k.id)),
   'none': () => new Set(),
 };
 
@@ -644,14 +616,46 @@ function initImgEvents() {
 
 function syncOverlays() {
   const op = document.getElementById('opacitySlider').value / 100;
+  
+  // Create mask canvas
+  const kbBody = document.querySelector('.kb-body');
+  if(!kbBody) return;
+  const rect = kbBody.getBoundingClientRect();
+  const canvas = document.createElement('canvas');
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = 'black';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = 'white';
+
+  // Draw white rects for each illust-key
+  ALL_KEYS.forEach(key => {
+    if(illustZone.has(key.id)) {
+      const pxX = 12 + (key.x - 1) * 8.5;
+      const pxY = 12 + (key.y - 1) * 34;
+      const pxW = key.w * 34; // 1u = 34px
+      const pxH = (key.h || 1) * 34;
+      // Subtract padding for key gaps (simulating the padding:1.5px in CSS)
+      ctx.roundRect(pxX + 1.5, pxY + 1.5, pxW - 3, pxH - 3, 4);
+      ctx.fill();
+    }
+  });
+
+  const maskData = canvas.toDataURL();
+
   ['illustImgColor','illustImgZone'].forEach(id => {
     const img = document.getElementById(id);
     if(uploadedImg) { 
       img.src = uploadedImg; 
       img.style.opacity = op;
       img.style.transform = `translate(${imgX}px, ${imgY}px) scale(${imgScale})`;
-      img.style.objectFit = 'contain'; // Changed from 'cover' for better control
+      img.style.objectFit = 'contain';
       img.style.pointerEvents = 'none';
+      img.parentElement.style.webkitMaskImage = `url(${maskData})`;
+      img.parentElement.style.maskImage = `url(${maskData})`;
+      img.parentElement.style.webkitMaskRepeat = 'no-repeat';
+      img.parentElement.style.maskRepeat = 'no-repeat';
     }
   });
 }
